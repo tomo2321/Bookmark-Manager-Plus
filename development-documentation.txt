@@ -149,48 +149,14 @@ v0.9.9
 - Fixed issue where str_alertify_error_sort_subfolder message appears even when moving to same place
 - Optimize refresh
 
+v1.0.0 (Released: June 19, 2025)
+- Upgraded from Manifest V2 to Manifest V3 to comply with Chrome Web Store requirements
+- Converted background page to service worker
+- Removed background.html as it's not supported in Manifest V3
+- Updated Chrome API calls to use chrome.action instead of chrome.browserAction
+- Updated content security policy format to meet Manifest V3 requirements
+- Removed jQuery dependency from background script
+- Added type: "module" to background service worker for better code organization
+- Changed permissions structure to separate host permissions
 
 - Fixed issue where selecting closed group during search was not applied properly
-- Allow selecting closed group by dragging
-- Mention in tips that right-clicking explore arrow shows history
-- Added context menu to add page/folder to folder during search
-- Added GitHub related content
-- Added drag and ctrl+click to explore history
-- Fix data corruption issue when syncing with other computers
-- Fixed issue where adding page/folder via context menu to first item's folder adds to last
-- Fixed issue where revisiting after removing middle folder in explore history was not handled properly
-- Fixed issue where closed group color does not appear even when item is selected
-
-- Occasional corruption when opening extension (seems to occur after 2020)
-- Issue where added/moved page is not visible (seems to occur after Nov 2020)
-
-/////////////////////////////////////
-
-
-
-Organize memos in view
-Show preview as context menu in same view
-When dragging item, make it appear to move immediately instead of disappearing and reappearing
-Apply drop and contextmenu to explore folder as well
-
-
-Show highlight briefly after auto-scroll when using show in folder (like Chrome DevTools)
-Remove recursive option and add Ctrl+F to highlight current explore folder => add
-Add feature to find pages with same domain as current tab => add
-Add feature to find if current tab is bookmarked => add
-Add feature to find pages with same domain in context menu => add
-Add folder favorites for quick access from footer or view
-Question about a tag color - default is blue in local extension but purple in shared extension. Why?
-Add page preview feature in View (?)
-Create video (for 50+ users)
-
-
-v1.0.0 (100+ users)
-Accept donations (PayPal) => add (if over 500 users)
-Upload YouTube video => add
-Organize and complete shortcuts => add
-Add memo feature => add
-Implement autocomplete => add
-Multi-language support
-Add search by modified date in addition to created date
-Add search distinguishing http and https

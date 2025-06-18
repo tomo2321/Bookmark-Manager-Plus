@@ -1,130 +1,102 @@
+"use strict";
 
-'use strict';
+let bookmarkData;
+let badgeType;
 
-var bookmarkData;
-
-var badgeType;
-
-$(document).ready(function() {
-	
-	// register refreshTree listeners
-	chrome.bookmarks.onCreated.addListener(refreshTree);
-	chrome.bookmarks.onRemoved.addListener(refreshTree);
-	chrome.bookmarks.onChanged.addListener(refreshTree);
-	//chrome.bookmarks.onMoved.addListener(refreshTree);
-	//chrome.bookmarks.onChildrenReordered.addListener(refreshTree);
-	chrome.bookmarks.onImportEnded.addListener(refreshTree);
-	refreshTree();
-	
-	chrome.tabs.onUpdated.addListener(updateBadgeText);
-	
-	chrome.storage.onChanged.addListener(updateBadgeTextType);
-	updateBadgeTextType();
-	
-	chrome.tabs.onActivated.addListener(function(activeInfo) {
-		chrome.tabs.get(activeInfo.tabId, function(tab){
-			updateBadgeText(undefined, undefined, tab);
-		});
-	}); 
+chrome.runtime.onInstalled.addListener(() => {
+  registerListeners();
+  refreshTree();
+  updateBadgeTextType();
 });
 
+chrome.runtime.onStartup.addListener(() => {
+  registerListeners();
+  refreshTree();
+  updateBadgeTextType();
+});
+
+function registerListeners() {
+  chrome.bookmarks.onCreated.addListener(refreshTree);
+  chrome.bookmarks.onRemoved.addListener(refreshTree);
+  chrome.bookmarks.onChanged.addListener(refreshTree);
+  chrome.bookmarks.onImportEnded.addListener(refreshTree);
+
+  chrome.tabs.onUpdated.addListener(updateBadgeText);
+  chrome.storage.onChanged.addListener(updateBadgeTextType);
+
+  chrome.tabs.onActivated.addListener((activeInfo) => {
+    chrome.tabs.get(activeInfo.tabId, (tab) => {
+      updateBadgeText(undefined, undefined, tab);
+    });
+  });
+}
+
 function refreshTree() {
-	chrome.bookmarks.search({}, function(results) {
-		//handleRuntimeError();
-		bookmarkData = results;
-		
-		chrome.tabs.query({
-			active: true, 
-			currentWindow: true
-		}, function(tabs) {
-			updateBadgeText(undefined, undefined, tabs[0]);
-		});
-	});
+  chrome.bookmarks.search({}, (results) => {
+    bookmarkData = results;
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs.length > 0) {
+        updateBadgeText(undefined, undefined, tabs[0]);
+      }
+    });
+  });
 }
 
 function updateBadgeText(tabId, changeInfo, tab) {
-	
-	console.log("updateBadgeText");
-	
-	var results = bookmarkData;
-	
-	// how many pages are bookmarked with the current domain?
-	if(badgeType == "domain") {
-		
-		var reg = /:\/\/[^/]*/;
-		var url = reg.exec(tab.url)[0];
-	
-		var count = 0;
-		
-		for (var i = 0; i < results.length; i++) {
-			if(results[i].url == undefined) continue;
-			if(results[i].url.includes(url)) count++;
-		}
-		
-		setBadgeText(count);
-		
-	// how many pages are bookmarked entirely?
-	} else if(badgeType == "total") {
-		
-		var count = 0;
-		
-		for (var i = 0; i < results.length; i++) {
-			if(results[i].url == undefined) continue;
-			count++;
-		}
-		
-		setBadgeText(count);
-		
-	// how many pages are bookmarked today?
-	} else if(badgeType == "today") {
-		
-		var startTime = new Date().setHours(0,0,0,0);
-		var endTime = new Date().setHours(24,0,0,0);
-	
-		var count = 0;
-		
-		for (var i = 0; i < results.length; i++) {
-			if(results[i].url == undefined) continue;
-			if(results[i].dateAdded < startTime) continue;
-			if(results[i].dateAdded > endTime) continue;
-			count++;
-		}
-		
-		setBadgeText(count);
-		
-	// none
-	} else {
-		setBadgeText("");
-	}
-	
-	
+  if (!bookmarkData || !tab || !tab.url) return;
+
+  console.log("updateBadgeText");
+
+  let count = 0;
+
+  if (badgeType === "domain") {
+    const reg = /:\/\/[^/]*/;
+    const url = reg.exec(tab.url)?.[0];
+    if (!url) return;
+
+    for (let i = 0; i < bookmarkData.length; i++) {
+      const b = bookmarkData[i];
+      if (b.url && b.url.includes(url)) count++;
+    }
+  } else if (badgeType === "total") {
+    count = bookmarkData.filter((b) => b.url).length;
+  } else if (badgeType === "today") {
+    const startTime = new Date().setHours(0, 0, 0, 0);
+    const endTime = new Date().setHours(24, 0, 0, 0);
+    count = bookmarkData.filter(
+      (b) => b.url && b.dateAdded >= startTime && b.dateAdded <= endTime
+    ).length;
+  } else {
+    count = "";
+  }
+
+  setBadgeText(count);
 }
 
 function updateBadgeTextType() {
-	
-	console.log("updateBadgeTextType");
-	
-	chrome.storage.sync.get({
-		badge: "domain",
-	}, function(items) {
-		badgeType = items.badge;
-	});
-	
-	chrome.tabs.query({
-		active: true, 
-		currentWindow: true,
-	}, function(tabs) {
-		updateBadgeText(undefined, undefined, tabs[0]);
-	});
-	
+  console.log("updateBadgeTextType");
+
+  chrome.storage.sync.get({ badge: "domain" }, (items) => {
+    badgeType = items.badge;
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs.length > 0) {
+        updateBadgeText(undefined, undefined, tabs[0]);
+      }
+    });
+  });
 }
 
 function setBadgeText(count) {
-	if(count > 999) {
-		count = parseInt(count / 1000) + "k";
-	}
-	if(count > 999999) {
-		count = parseInt(count / 1000000) + "m";
-	}
-	chrome.browserAction.setBadgeText({text: count.toString()});
+  if (typeof count === "string") {
+    chrome.action.setBadgeText({ text: count });
+    return;
+  }
+
+  if (count > 999999) {
+    count = parseInt(count / 1000000) + "m";
+  } else if (count > 999) {
+    count = parseInt(count / 1000) + "k";
+  }
+
+  chrome.action.setBadgeText({ text: count.toString() });
 }
